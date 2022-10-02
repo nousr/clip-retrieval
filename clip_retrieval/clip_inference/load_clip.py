@@ -38,7 +38,7 @@ class OpenClipWrapper(nn.Module):
 
 
 @lru_cache(maxsize=None)
-def load_open_clip(clip_model, use_jit=True, device="cuda"):
+def load_open_clip(clip_model, use_jit=True, device="cuda", cache=None):
     """load open clip"""
 
     import open_clip  # pylint: disable=import-outside-toplevel
@@ -48,21 +48,21 @@ def load_open_clip(clip_model, use_jit=True, device="cuda"):
     pretrained = dict(open_clip.list_pretrained())
     checkpoint = pretrained[clip_model]
     model, _, preprocess = open_clip.create_model_and_transforms(
-        clip_model, pretrained=checkpoint, device=device, jit=use_jit
+        clip_model, pretrained=checkpoint, device=device, jit=use_jit, cache_dir=cache
     )
     model = OpenClipWrapper(inner_model=model, device=device)
     return model, preprocess
 
 
 @lru_cache(maxsize=None)
-def load_clip(clip_model="ViT-B/32", use_jit=True, warmup_batch_size=1):
+def load_clip(clip_model="ViT-B/32", use_jit=True, warmup_batch_size=1, cache=None):
     """Load clip then warmup"""
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if clip_model.startswith("open_clip:"):
         clip_model = clip_model[len("open_clip:") :]
-        model, preprocess = load_open_clip(clip_model, use_jit, device)
+        model, preprocess = load_open_clip(clip_model, use_jit, device, cache=cache)
     else:
-        model, preprocess = clip.load(clip_model, device=device, jit=use_jit)
+        model, preprocess = clip.load(clip_model, device=device, jit=use_jit, cache=cache)
 
     print("warming up with batch size", warmup_batch_size)
     warmup(warmup_batch_size, device, preprocess, model)
